@@ -1,19 +1,26 @@
 # pip install snowflake-connector-python
 # pip install snowflake-sqlalchemy
 
-
-from flask import Flask
+import json
+from flask import Flask, render_template, request
 from snowflake import connector
+import pandas as pd
 
 app = Flask("My Website")
 
 @app.route("/")
 def home():
-    return "Weclome to my website!  My snowflake account # is: " + str(onerow)
+    return render_template("index.html", dfhtml=dfhtml)
 
-@app.route("/about")
-def about():
-    return "About my website!"
+@app.route("/submit")
+def submit():
+    return render_template("submit.html")
+
+@app.route("/thanks4submit", methods=["POST"])
+def thanks():
+    colorname = request.form.get("cname")
+    username = request.form.get("uname")
+    return render_template("thanks4submit.html", colorname=colorname, username=username)
 
 # Credentials
 file = open("credentials", "r")
@@ -23,13 +30,23 @@ file.close()
 
 # Snowflake
 cnx = connector.connect(
-    account = "ci21584.ca-central-1.aws",
-    user = "datacrunch",
-    password = "Enterprise1!"
+    account = credentials["account"],
+    user = credentials["user"],
+    password = credentials["password"],
+    warehouse = credentials["warehouse"],
+    database = credentials["database"],
+    schema = credentials["schema"],
+    role = "SYSADMIN"
 )
 
 cur = cnx.cursor()
-cur.execute("select current_account()")
-onerow = cur.fetchone()
+cur.execute("select * from colors")
+rows = pd.DataFrame(cur.fetchall(), columns=["Color UID", "Color Name"])
+#print(rows)
+#onerow = cur.fetchone()
+
+# test dataframe as html
+dfhtml = rows.to_html()
+#print(dfhtml)
 
 app.run()
